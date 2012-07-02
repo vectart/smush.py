@@ -139,12 +139,16 @@ class Smush():
                     optimiser.bytes_saved / 1024))
             arr.extend(optimiser.array_optimised_file)
 
+        modified = []
+
         if (len(arr) != 0):
             output.append('Modified files:')
-            for filename in arr:
-                output.append('    %s' % filename)
+            for f in arr:
+                if f['bytes_saved_percent']:
+                    modified.append(f)
+                    output.append('%(bytes_saved_percent)s%% saved\t[%(input_size)s / %(output_size)s]\t%(name)s' % f)
         output.append('Total time taken: %.2f seconds' % (time.time() - self.__start_time))
-        return {'output': "\n".join(output), 'modified': arr}
+        return {'output': "\n".join(output), 'modified': modified}
 
 
     def __checkExclude(self, file):

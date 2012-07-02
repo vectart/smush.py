@@ -74,28 +74,6 @@ class Optimiser(object):
         return command.replace(Optimiser.input_placeholder, input).replace(Optimiser.output_placeholder, output)
 
 
-    def _keep_smallest_file(self, input, output):
-        """
-        Compares the sizes of two files, and discards the larger one
-        """
-        input_size = os.path.getsize(input)
-        output_size = os.path.getsize(output)
-
-        # if the image was optimised (output is smaller than input), overwrite the input file with the output
-        # file.
-        if (output_size > 0 and output_size < input_size):
-            try:
-                shutil.copyfile(output, input)
-                self.files_optimised += 1
-                self.bytes_saved += (input_size - output_size)
-            except IOError:
-                logging.error("Unable to copy %s to %s: %s" % (output, input, IOError))
-                sys.exit(1)
-        
-        # delete the output file
-        os.unlink(output)
-        
-
     def _is_acceptable_image(self, input):
         """
         Returns whether the input image can be used by a particular optimiser.
@@ -138,43 +116,73 @@ class Optimiser(object):
 
         while True:
             command = self._get_command()
-
-            if not command:
-                break
-
             output_file_name = self._get_output_file_name()
-            command = self.__replace_placeholders(command, self.input, output_file_name)
-            logging.info("Executing %s" % (command))
-            args = shlex.split(command)
-            
-            try:
-                retcode = subprocess.call(args, stdout=self.stdout.opened, stderr=self.stderr.opened)
-            except OSError:
-                logging.error("Error executing command %s. Error was %s" % (command, OSError))
-                sys.exit(1)
 
-            if retcode != 0:
-                # gifsicle seems to fail by the file size?
-                os.unlink(output_file_name)
-            else :
-                if self.list_only == False:
-                    # compare file sizes if the command executed successfully
-                    self._keep_smallest_file(self.input, output_file_name)
+            if command:
+                command = self.__replace_placeholders(command, self.input, output_file_name)
+                logging.info("Executing %s" % (command))
+                args = shlex.split(command)
+                
+                try:
+                    retcode = subprocess.call(args, stdout=self.stdout.opened, stderr=self.stderr.opened)
+                except OSError:
+                    logging.error("Error executing command %s. Error was %s" % (command, OSError))
+                    sys.exit(1)
+
+                if retcode != 0:
+                    # gifsicle seems to fail by the file size?
+                    if os.path.isfile(output_file_name):
+                        os.unlink(output_file_name)
                 else:
+                    if self.list_only == False:
+                        # compare file sizes if the command executed successfully
+                        self._keep_smallest_file(self.input, output_file_name)
+            else:
+                if self.list_only == True:
                     self._list_only(self.input, output_file_name)
+                if os.path.isfile(output_file_name):
+                    os.unlink(output_file_name)
+                break
 
 
     def _list_only(self, input, output):
         """
         Always keeps input, but still compares the sizes of two files
         """
-        input_size = os.path.getsize(input)
-        output_size = os.path.getsize(output)
+        if os.path.isfile(input) and os.path.isfile(output):
+            input_size = os.path.getsize(input)
+            output_size = os.path.getsize(output)
 
-        if (output_size > 0 and output_size < input_size):
-            self.files_optimised += 1
-            self.bytes_saved += (input_size - output_size)
-            self.array_optimised_file.append(input)
+            if (output_size > 0 and output_size < input_size):
+                bytes_saved = (input_size - output_size)
+                self.files_optimised += 1
+                self.bytes_saved += bytes_saved
+
+                self.array_optimised_file.append({
+                    'name': input,
+                    'input_size': input_size,
+                    'output_size': output_size,
+                    'bytes_saved': bytes_saved,
+                    'bytes_saved_percent': int(100 - round((output_size / float(input_size)) * 100)),
+                })
+
+    def _keep_smallest_file(self, input, output):
+        """
+        Compares the sizes of two files, and discards the larger one
+        """
+        if os.path.isfile(input) and os.path.isfile(output):
+            input_size = os.path.getsize(input)
+            output_size = os.path.getsize(output)
+
+            # if the image was optimised (output is smaller than input), overwrite the input file with the output
+            # file.
+            if (output_size > 0 and output_size < input_size):
+                try:
+                    shutil.copyfile(output, input)
+                    self.files_optimised += 1
+                    self.bytes_saved += (input_size - output_size)
+                except IOError:
+                    logging.error("Unable to copy %s to %s: %s" % (output, input, IOError))
+                    sys.exit(1)
         
-        # delete the output file
-        os.unlink(output)
+
