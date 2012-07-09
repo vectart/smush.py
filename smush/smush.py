@@ -175,7 +175,7 @@ def main():
     strip_jpg_meta = False
     exclude = ['.bzr', '.git', '.hg', '.svn']
     list_only = False
-    min_percent = 5
+    min_percent = 3
     identify_mime = False
     save_optimized = None
 
@@ -240,6 +240,8 @@ on the web.
 
   Usage: """ + sys.argv[0] + """ [options] FILES...
 
+  Example: """ + sys.argv[0] + """ --strip-meta --list-only --save-optimized=DIR --recursive DIR
+
     FILES can be a space-separated list of files or directories to optimise
 
   **WARNING**: Existing images files  will be OVERWRITTEN with optimised
@@ -252,9 +254,9 @@ on the web.
   -s, --strip-meta       Strip all meta-data from JPEGs
   --exclude=EXCLUDES     Comma separated value for excluding files
   --identify-mime        Fast identify image files via mimetype
-  
+
   --list-only            Perform a trial run with no changes made
-  --min-percent=INT      Minimum percent of optimisation to warn about
+  --min-percent=INT      Minimum percent of optimisation to warn about (default is > 3%)
   --save-optimized=DIR   Directory to save optimised files
 """
 

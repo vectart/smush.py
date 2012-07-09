@@ -47,32 +47,6 @@ class OptimiseGIF(Optimiser):
         """
         return self.animated_gif_optimiser._is_acceptable_image(input)
 
-
-    def _keep_smallest_file(self, input, output):
-        """
-        Compares the sizes of two files, and discards the larger one
-        """
-        input_size = os.path.getsize(input)
-        output_size = os.path.getsize(output)
-        
-        # if the image was optimised (output is smaller than input), overwrite the input file with the output
-        # file.
-        if (output_size < input_size):
-            try:
-                shutil.copyfile(output, input)
-                self.files_optimised += 1
-                self.bytes_saved += (input_size - output_size)
-            except IOError:
-                logging.error("Unable to copy %s to %s: %s" % (output, input, IOError))
-                sys.exit(1)
-
-            if self.iterations == 1 and not self.is_animated:
-                self.converted_to_png = True
-            
-        # delete the output file
-        os.unlink(output)
-
-
     def _get_command(self):
         """
         Returns the next command to apply
@@ -96,20 +70,3 @@ class OptimiseGIF(Optimiser):
         self.iterations += 1
 
         return command
-
-    def _list_only(self, input, output):
-        """
-        Always keeps input, but still compares the sizes of two files
-        """
-        input_size = os.path.getsize(input)
-        output_size = os.path.getsize(output)
-
-        if (output_size > 0 and output_size < input_size):
-            self.files_optimised += 1
-            self.bytes_saved += (input_size - output_size)
-            self.array_optimised_file.append(input)
-            if self.iterations == 1 and not self.is_animated:
-                self.convert_to_png = True
-        
-        # delete the output file
-        os.unlink(output)

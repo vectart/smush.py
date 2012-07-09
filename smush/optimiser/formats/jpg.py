@@ -16,10 +16,12 @@ class OptimiseJPG(Optimiser):
         # the command to execute this optimiser
         if strip_jpg_meta:
             self.commands = ('jpegtran -outfile "__OUTPUT__" -optimise -copy none "__INPUT__"',
-                'jpegtran -outfile "__OUTPUT__" -optimise -progressive "__INPUT__"')
+                'jpegtran -outfile "__OUTPUT__" -optimise -progressive "__INPUT__"',
+                'jpegoptim -f --strip-all "__OUTPUT__"')
         else:
             self.commands = ('jpegtran -outfile "__OUTPUT__" -optimise -copy all "__INPUT__"',
-                'jpegtran -outfile "__OUTPUT__" -optimise -progressive -copy all "__INPUT__"')
+                'jpegtran -outfile "__OUTPUT__" -optimise -progressive -copy all "__INPUT__"',
+                'jpegoptim -f --strip-all "__OUTPUT__"')
 
         # format as returned by 'identify'
         self.format = "JPEG"
