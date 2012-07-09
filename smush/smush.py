@@ -133,21 +133,20 @@ class Smush():
         for key, optimiser in self.optimisers.iteritems():
             # divide optimiser.files_optimised by 2 for each optimiser since each optimised file
             # gets counted twice
-            output.append('    %d %ss optimised out of %d scanned. Saved %dkb' % (
-                    optimiser.files_optimised // 2,
-                    key, 
-                    optimiser.files_scanned, 
-                    optimiser.bytes_saved / 1024))
+            output.append('    %d %ss' % (
+                    optimiser.files_scanned,
+                    key,))
+
             arr.extend(optimiser.array_optimised_file)
 
         modified = []
 
         if (len(arr) != 0):
-            output.append('Modified files:')
+            output.append('Optimised files:')
             for f in arr:
                 if f['bytes_saved_percent']:
                     modified.append(f)
-                    output.append('%(bytes_saved_percent)s%% saved\t[%(input_size)s > %(output_size)s]\t%(name)s' % f)
+                    output.append('    %(bytes_saved_percent)s%% saved\t[%(input_size)s > %(output_size)s]\t%(name)s' % f)
         output.append('Total time taken: %.2f seconds' % (time.time() - self.__start_time))
         return {'output': "\n".join(output), 'modified': modified}
 
@@ -161,7 +160,7 @@ class Smush():
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hrqs', ['help', 'recursive', 'quiet', 'strip-meta', 'exclude=', 'list-only' ,'identify-mime', 'min-percent=', 'save-optimized='])
+        opts, args = getopt.getopt(sys.argv[1:], 'hrqs', ['help', 'recursive', 'quiet', 'strip-meta', 'exclude=','identify-mime', 'min-percent=', 'save-optimized='])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -174,7 +173,7 @@ def main():
     quiet = False
     strip_jpg_meta = False
     exclude = ['.bzr', '.git', '.hg', '.svn']
-    list_only = False
+    list_only = True
     min_percent = 3
     identify_mime = False
     save_optimized = None
@@ -193,8 +192,6 @@ def main():
             identify_mime = True
         elif opt in ('--exclude'):
             exclude.extend(arg.strip().split(','))
-        elif opt in ('--list-only'):
-            list_only = True
         elif opt in ('--min-percent'):
             min_percent = int(arg)
         elif opt in ('--save-optimized'):
@@ -240,24 +237,23 @@ on the web.
 
   Usage: """ + sys.argv[0] + """ [options] FILES...
 
-  Example: """ + sys.argv[0] + """ --strip-meta --list-only --save-optimized=DIR --recursive DIR
+  Example: """ + sys.argv[0] + """ --strip-meta --save-optimized=DIR --recursive DIR
 
     FILES can be a space-separated list of files or directories to optimise
-
-  **WARNING**: Existing images files  will be OVERWRITTEN with optimised
-               versions.
 
   Options are any of:
   -h, --help             Display this help message and exit
   -r, --recursive        Recurse through given directories optimising images
   -q, --quiet            Don't display optimisation statistics at the end
   -s, --strip-meta       Strip all meta-data from JPEGs
+
+  --min-percent=INT      Minimum percent of optimisation to warn about (default is > 3%)
+  --save-optimized=DIR   Directory to save optimised files
   --exclude=EXCLUDES     Comma separated value for excluding files
   --identify-mime        Fast identify image files via mimetype
 
-  --list-only            Perform a trial run with no changes made
-  --min-percent=INT      Minimum percent of optimisation to warn about (default is > 3%)
-  --save-optimized=DIR   Directory to save optimised files
+  Could be builded by cxfreeze:
+    cxfreeze smush.py --include-modules=encodings.ascii --target-dir build/
 """
 
 if __name__ == '__main__':
