@@ -27,6 +27,8 @@ class Optimiser(object):
         self.files_optimised = 0
         self.bytes_saved = 0
         self.list_only = kwargs.get('list_only')
+        self.min_percent = kwargs.get('min_percent')
+        self.save_optimized = kwargs.get('save_optimized')
         self.array_optimised_file = []
         self.quiet = kwargs.get('quiet')
         self.stdout = Scratch()
@@ -102,7 +104,7 @@ class Optimiser(object):
         return output.startswith(self.format)
 
 
-    def optimise(self):
+    def optimise(self, original_dir):
         """
         Calls the 'optimise_image' method on the object. Tests the 'optimised' file size. If the
         generated file is larger than the original file, discard it, otherwise discard the input file.
@@ -139,7 +141,17 @@ class Optimiser(object):
                         self._keep_smallest_file(self.input, output_file_name)
             else:
                 if self.list_only == True:
-                    self._list_only(self.input, output_file_name)
+                    is_optimised = self._list_only(self.input, output_file_name)
+                    if self.save_optimized and is_optimised:
+                        optimized_path = os.path.join(os.path.abspath(self.save_optimized), os.path.relpath(self.input, original_dir))
+                        optimized_dir = os.path.dirname(optimized_path)
+
+                        if not os.path.exists(optimized_dir):
+                            os.makedirs(optimized_dir)
+
+                        logging.info("Saving optimised image to %s" % (optimized_path))
+                        shutil.copyfile(output_file_name, optimized_path)
+
                 if os.path.isfile(output_file_name):
                     os.unlink(output_file_name)
                 break
@@ -155,16 +167,21 @@ class Optimiser(object):
 
             if (output_size > 0 and output_size < input_size):
                 bytes_saved = (input_size - output_size)
+                bytes_saved_percent = int(100 - round((output_size / float(input_size)) * 100))
                 self.files_optimised += 1
                 self.bytes_saved += bytes_saved
 
-                self.array_optimised_file.append({
-                    'name': input,
-                    'input_size': input_size,
-                    'output_size': output_size,
-                    'bytes_saved': bytes_saved,
-                    'bytes_saved_percent': int(100 - round((output_size / float(input_size)) * 100)),
-                })
+                if bytes_saved_percent > self.min_percent:
+                    self.array_optimised_file.append({
+                        'name': input,
+                        'input_size': input_size,
+                        'output_size': output_size,
+                        'bytes_saved': bytes_saved,
+                        'bytes_saved_percent': bytes_saved_percent,
+                    })
+
+                    return True
+        return False
 
     def _keep_smallest_file(self, input, output):
         """

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, os.path, getopt, time, shlex, subprocess, logging
+import sys, os, os.path, getopt, time, shlex, subprocess, logging, shutil
 from subprocess import CalledProcessError
 from optimiser.formats.png import OptimisePNG
 from optimiser.formats.jpg import OptimiseJPG
@@ -51,13 +51,14 @@ class Smush():
             logging.info('optimising file %s' % (file))
             self.__files_scanned += 1
             self.optimisers[key].set_input(file)
-            self.optimisers[key].optimise()
+            self.optimisers[key].optimise(self.original_dir)
 
 
     def process(self, dir, recursive):
         """
         Iterates through the input directory optimising files
         """
+        self.original_dir = dir
         if recursive:
             self.__walk(dir, self.__smush)
         else:
@@ -146,7 +147,7 @@ class Smush():
             for f in arr:
                 if f['bytes_saved_percent']:
                     modified.append(f)
-                    output.append('%(bytes_saved_percent)s%% saved\t[%(input_size)s / %(output_size)s]\t%(name)s' % f)
+                    output.append('%(bytes_saved_percent)s%% saved\t[%(input_size)s > %(output_size)s]\t%(name)s' % f)
         output.append('Total time taken: %.2f seconds' % (time.time() - self.__start_time))
         return {'output': "\n".join(output), 'modified': modified}
 
@@ -160,7 +161,7 @@ class Smush():
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hrqs', ['help', 'recursive', 'quiet', 'strip-meta', 'exclude=', 'list-only' ,'identify-mime'])
+        opts, args = getopt.getopt(sys.argv[1:], 'hrqs', ['help', 'recursive', 'quiet', 'strip-meta', 'exclude=', 'list-only' ,'identify-mime', 'min-percent=', 'save-optimized='])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -174,7 +175,9 @@ def main():
     strip_jpg_meta = False
     exclude = ['.bzr', '.git', '.hg', '.svn']
     list_only = False
+    min_percent = 5
     identify_mime = False
+    save_optimized = None
 
     for opt, arg in opts:
         if opt in ('-h', '--help'):
@@ -192,7 +195,10 @@ def main():
             exclude.extend(arg.strip().split(','))
         elif opt in ('--list-only'):
             list_only = True
-            # quiet = True
+        elif opt in ('--min-percent'):
+            min_percent = int(arg)
+        elif opt in ('--save-optimized'):
+            save_optimized = arg
         else:
             # unsupported option given
             usage()
@@ -209,7 +215,10 @@ def main():
             format='%(asctime)s %(levelname)s %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S')
 
-    smush = Smush(strip_jpg_meta=strip_jpg_meta, exclude=exclude, list_only=list_only, quiet=quiet, identify_mime=identify_mime)
+    smush = Smush(strip_jpg_meta=strip_jpg_meta, exclude=exclude, list_only=list_only, quiet=quiet, identify_mime=identify_mime, min_percent=min_percent, save_optimized=save_optimized)
+
+    if save_optimized and os.path.isdir(save_optimized):
+        shutil.rmtree(save_optimized, True)
 
     for arg in args:
         try:
@@ -237,13 +246,16 @@ on the web.
                versions.
 
   Options are any of:
-  -h, --help         Display this help message and exit
-  -r, --recursive    Recurse through given directories optimising images
-  -q, --quiet        Don't display optimisation statistics at the end
-  -s, --strip-meta   Strip all meta-data from JPEGs
-  --exclude=EXCLUDES comma separated value for excluding files
-  --identify-mime    Fast identify image files via mimetype
-  --list-only        Perform a trial run with no changes made
+  -h, --help             Display this help message and exit
+  -r, --recursive        Recurse through given directories optimising images
+  -q, --quiet            Don't display optimisation statistics at the end
+  -s, --strip-meta       Strip all meta-data from JPEGs
+  --exclude=EXCLUDES     Comma separated value for excluding files
+  --identify-mime        Fast identify image files via mimetype
+  
+  --list-only            Perform a trial run with no changes made
+  --min-percent=INT      Minimum percent of optimisation to warn about
+  --save-optimized=DIR   Directory to save optimised files
 """
 
 if __name__ == '__main__':
