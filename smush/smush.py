@@ -252,6 +252,9 @@ on the web.
   --exclude=EXCLUDES     Comma separated value for excluding files
   --identify-mime        Fast identify image files via mimetype
 
+  Dependencies:
+    sudo apt-get install imagemagick trimage gifsicle libjpeg-progs jpegoptim pngcrush pngnq optipng
+
   Could be builded by cxfreeze:
     cxfreeze smush.py --include-modules=encodings.ascii --target-dir build/
 """
